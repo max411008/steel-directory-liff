@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <title>鋼鐵拓展協會｜電子通訊錄</title>
+  <!-- 本頁不含任何會員資料：資料只在後端確認「你是指定 LINE 群組的成員」後才回傳。 -->
+  <style>
+    :root{--navy:#142b43;--orange:#d86b32;--ink:#23374a;--muted:#647383;--line:#e0e6ea;--paper:#f3f5f6;--shadow:0 5px 20px #172d4210}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif;-webkit-font-smoothing:antialiased}
+    .site-header{height:76px;padding:0 20px;display:flex;align-items:center;gap:12px;background:#fffffff5;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20;backdrop-filter:blur(12px)}
+    .brand-mark{width:39px;height:42px;display:grid;place-items:center;background:var(--navy);color:#fff;border-radius:4px;position:relative;font-size:24px;font-weight:900;line-height:1}
+    .brand-mark:after{content:"";position:absolute;right:0;bottom:0;width:11px;height:4px;background:var(--orange)}
+    .brand-name{font-size:18px;font-weight:800;color:var(--navy)}
+    .brand-sub{font-size:10px;letter-spacing:.08em;color:var(--muted)}
+    .search-panel{padding:16px 20px}
+    .search-form{display:flex;align-items:center;background:#fff;min-height:56px;border-radius:9px;padding:5px 14px;border:1px solid #ccd7df}
+    .search-form input{width:100%;border:0;outline:none;background:transparent;color:var(--navy);font-size:17px;padding:6px 0;font:inherit}
+    .list{display:grid;gap:12px;padding:0 20px 32px}
+    .member-card{background:#fff;border-radius:12px;box-shadow:var(--shadow);border:1px solid var(--line);padding:16px;display:flex;gap:13px;align-items:flex-start}
+    .avatar{width:49px;height:49px;flex-shrink:0;display:grid;place-items:center;border-radius:50%;background:#e6edf3;color:#33516b;font-size:23px;font-weight:650;border:1px solid #dce5ec}
+    .member-body{min-width:0;flex:1}
+    .member-name{display:flex;align-items:center;gap:8px;font-size:19px;font-weight:750}
+    .member-role{font-size:11px;font-weight:500;background:#f0f3f5;padding:2px 6px;border-radius:4px;color:#667789}
+    .member-company{color:var(--muted);font-size:14px}
+    .member-products{font-size:14px;margin-top:4px}
+    .member-card-bottom{display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid #edf0f2;margin-top:10px;padding-top:9px}
+    .call{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:6px;background:var(--orange);color:#fff;text-decoration:none;font-weight:650;font-size:15px}
+    .call.secondary{background:#f0f3f5;color:var(--navy)}
+    .notice{margin:40px 20px;padding:24px;background:#fff;border-radius:12px;border:1px solid var(--line);text-align:center;color:var(--muted)}
+    .notice strong{display:block;color:var(--navy);font-size:18px;margin-bottom:6px}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <span class="brand-mark" aria-hidden="true">H</span>
+    <div><div class="brand-name">鋼鐵拓展協會</div><div class="brand-sub">STEEL CONNECTION · 會員通訊錄</div></div>
+  </header>
+  <main id="app"><div class="notice"><strong>載入中…</strong>正在確認你的 LINE 身分</div></main>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" charset="utf-8"></script>
+  <script>
+    // 上線前把這兩個佔位字串換成真的值（見 ../README.md）。
+    var CONFIG = {
+      LIFF_ID: 'YOUR_LIFF_ID',
+      API_URL: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec'
+    };
+
+    var app = document.getElementById('app');
+    var members = [];
+
+    function el(tag, cls, text) {
+      var n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text !== undefined && text !== null) n.textContent = String(text); // 一律 textContent，不用 innerHTML 塞資料
+      return n;
+    }
+
+    function showNotice(title, detail) {
+      app.replaceChildren();
+      var box = el('div', 'notice');
+      box.appendChild(el('strong', '', title));
+      if (detail) box.appendChild(document.createTextNode(detail));
+      app.appendChild(box);
+    }
+
+    function telHref(num) {
+      var digits = String(num || '').replace(/[^0-9+]/g, '');
+      return digits ? 'tel:' + digits : '';
+    }
+
+    function renderList(keyword) {
+      var kw = (keyword || '').trim().toLowerCase();
+      var list = document.getElementById('list');
+      list.replaceChildren();
+      var shown = members.filter(function (m) {
+        if (!kw) return true;
+        return [m.name, m.company, m.products, m.title, m.category].some(function (v) {
+          return String(v || '').toLowerCase().indexOf(kw) !== -1;
+        });
+      });
+      if (!shown.length) { list.appendChild(el('div', 'notice', '找不到符合的會員')); return; }
+      shown.forEach(function (m) {
+        var card = el('article', 'member-card');
+        card.appendChild(el('div', 'avatar', String(m.name || '?').slice(0, 1)));
+        var body = el('div', 'member-body');
+        var name = el('div', 'member-name', m.name);
+        if (m.title) name.appendChild(el('span', 'member-role', m.title));
+        body.appendChild(name);
+        if (m.company) body.appendChild(el('div', 'member-company', m.company + (m.companyTitle ? '｜' + m.companyTitle : '')));
+        if (m.products) body.appendChild(el('div', 'member-products', m.products));
+        var bottom = el('div', 'member-card-bottom');
+        [[m.mobile, '撥手機', 'call'], [m.phone, '撥市話', 'call secondary']].forEach(function (x) {
+          var href = telHref(x[0]);
+          if (!href) return;
+          var a = el('a', x[2], x[1]);
+          a.href = href;
+          bottom.appendChild(a);
+        });
+        if (bottom.childNodes.length) body.appendChild(bottom);
+        card.appendChild(body);
+        list.appendChild(card);
+      });
+    }
+
+    function renderDirectory() {
+      app.replaceChildren();
+      var panel = el('div', 'search-panel');
+      var form = el('div', 'search-form');
+      var input = el('input');
+      input.type = 'search';
+      input.placeholder = '搜尋姓名、公司或產品';
+      input.setAttribute('aria-label', '搜尋會員');
+      input.addEventListener('input', function () { renderList(input.value); });
+      form.appendChild(input);
+      panel.appendChild(form);
+      app.appendChild(panel);
+      var list = el('div', 'list');
+      list.id = 'list';
+      app.appendChild(list);
+      renderList('');
+    }
+
+    // 重新登入旗標：瀏覽器禁用儲存時不丟例外（拿不到就當沒試過，最多多登入一次）。
+    function getFlag() { try { return sessionStorage.getItem('relogin'); } catch (e) { return null; } }
+    function setFlag(v) {
+      try { if (v) sessionStorage.setItem('relogin', v); else sessionStorage.removeItem('relogin'); } catch (e) { /* 忽略 */ }
+    }
+
+    async function main() {
+      try {
+        await liff.init({ liffId: CONFIG.LIFF_ID });
+        if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+        var idToken = liff.getIDToken();
+        if (!idToken) { showNotice('無法取得 LINE 身分', '請從群組裡的「開啟通訊錄」按鈕進來'); return; }
+        // 用 text/plain POST：ID token 不放網址（避免留在紀錄），也不會觸發跨站預檢。
+        var res = await fetch(CONFIG.API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'directory', id_token: idToken })
+        });
+        var data = await res.json();
+        if (data && data.reason === 'invalid_token' && !getFlag()) {
+          // ID token 過期（LIFF 會沿用舊 token）：重新登入一次拿新的，只試一次避免無限迴圈。
+          setFlag('1');
+          liff.logout();
+          liff.login({ redirectUri: location.href });
+          return;
+        }
+        setFlag(null);
+        if (!data || !data.ok) { showNotice('你不在群組內，無法查看', '只有本會 LINE 群組的成員可以開啟通訊錄'); return; }
+        members = Array.isArray(data.members) ? data.members : [];
+        renderDirectory();
+      } catch (err) {
+        showNotice('載入失敗', '請稍後再試，或從群組重新開啟');
+      }
+    }
+    main();
+  </script>
+</body>
+</html>
