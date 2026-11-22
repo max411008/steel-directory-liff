@@ -3,124 +3,525 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#142b43">
   <meta name="referrer" content="no-referrer">
   <title>鋼鐵拓展協會｜電子通訊錄</title>
-  <!-- 本頁不含任何會員資料：資料只在後端確認「你是指定 LINE 群組的成員」後才回傳。 -->
   <style>
-    :root{--navy:#142b43;--orange:#d86b32;--ink:#23374a;--muted:#647383;--line:#e0e6ea;--paper:#f3f5f6;--shadow:0 5px 20px #172d4210}
+    :root{--navy:#142b43;--navy2:#203e58;--orange:#d86b32;--ink:#23374a;--muted:#647383;--line:#e0e6ea;--paper:#f3f5f6;--shadow:0 5px 20px #172d4210}
     *{box-sizing:border-box}
-    body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif;-webkit-font-smoothing:antialiased}
-    .site-header{height:76px;padding:0 20px;display:flex;align-items:center;gap:12px;background:#fffffff5;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20;backdrop-filter:blur(12px)}
+    body{margin:0;background:#e3e8ec;color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif;-webkit-font-smoothing:antialiased}
+    button{cursor:pointer}
+    a{color:inherit;text-decoration:none}
+    button{color:inherit}
+    button{border:0}
+    svg.icon{width:22px;height:22px;display:inline-block;vertical-align:middle;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    h1{font-size:28px;line-height:1.4;letter-spacing:.02em}
+    h2{font-size:21px;line-height:1.4}
+    .shell{width:100%;max-width:430px;min-height:100dvh;margin:0 auto;background:var(--paper);position:relative;isolation:isolate}
+    .site-header{height:calc(76px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 20px 0;display:flex;align-items:center;background:#fffffff5;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20;backdrop-filter:blur(12px)}
+    .brand{display:flex;gap:10px;align-items:center;background:transparent;padding:0;text-align:left}
     .brand-mark{width:39px;height:42px;display:grid;place-items:center;background:var(--navy);color:#fff;border-radius:4px;position:relative;font-size:24px;font-weight:900;line-height:1}
     .brand-mark:after{content:"";position:absolute;right:0;bottom:0;width:11px;height:4px;background:var(--orange)}
-    .brand-name{font-size:18px;font-weight:800;color:var(--navy)}
-    .brand-sub{font-size:10px;letter-spacing:.08em;color:var(--muted)}
-    .search-panel{padding:16px 20px}
-    .search-form{display:flex;align-items:center;background:#fff;min-height:56px;border-radius:9px;padding:5px 14px;border:1px solid #ccd7df}
-    .search-form input{width:100%;border:0;outline:none;background:transparent;color:var(--navy);font-size:17px;padding:6px 0;font:inherit}
-    .list{display:grid;gap:12px;padding:0 20px 32px}
-    .member-card{background:#fff;border-radius:12px;box-shadow:var(--shadow);border:1px solid var(--line);padding:16px;display:flex;gap:13px;align-items:flex-start}
+    .brand-name{display:block;font-size:18px;font-weight:750;line-height:1.5;letter-spacing:.025em}
+    .brand-sub{display:block;font-size:10px;color:var(--muted);letter-spacing:.14em}
+    main{min-height:65vh;padding-bottom:112px}
+    .page-title{padding:24px 20px 20px}
+    .eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--orange);margin-bottom:5px}
+    .subtitle{font-size:15px;color:var(--muted);margin-top:6px}
+    .section{padding:0 20px;margin-top:25px}
+    .section-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;gap:8px}
+    .text-link{font-size:14px;font-weight:650;color:var(--navy2);min-height:44px;display:inline-flex;align-items:center;gap:2px;background:transparent;padding:0}
+    .text-link svg{width:16px}
+    .count{display:inline-grid;place-items:center;min-width:25px;height:25px;border-radius:6px;background:#e7edf1;font-size:13px;vertical-align:middle;margin-left:5px}
+    .btn{min-height:49px;padding:11px 18px;border-radius:10px;background:var(--navy);color:white;font-size:16px;font-weight:650;display:inline-flex;gap:8px;align-items:center;justify-content:center;line-height:1.5;border:1px solid transparent}
+    .btn:hover{filter:brightness(1.08)}
+    .btn.light{background:white;color:var(--navy);border-color:var(--line)}
+    .tag{display:inline-flex;align-items:center;min-height:28px;padding:3px 9px;border-radius:5px;background:#eef2f5;color:#526376;font-size:13px;line-height:1.5}
+    .tags{display:flex;flex-wrap:wrap;gap:6px}
+    .card{background:white;border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow)}
+    .notice{display:flex;gap:9px;margin:28px 20px;padding:17px;background:#e9eff3;border-radius:9px;font-size:15px;color:#566b7c;align-items:flex-start}
+    .notice svg{width:18px;min-width:18px;margin-top:2px}
+    .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:#fffffff7;border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom));z-index:30;display:grid;grid-template-columns:repeat(2,1fr);backdrop-filter:blur(12px)}
+    .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 0;font-size:11px;color:#6b7885;border-radius:8px;position:relative;min-height:54px;background:transparent}
+    .nav-item.active{color:var(--navy);font-weight:750;background:#eef2f5}
+    .nav-item.active:before{content:"";height:3px;width:17px;background:var(--orange);position:absolute;top:-8px;border-radius:0 0 3px 3px}
+    .nav-item svg{width:23px;height:23px}
+    .hero{background:var(--navy);color:white;padding:24px 20px 22px;position:relative;overflow:hidden}
+    .hero:before,.hero:after{content:"";position:absolute;pointer-events:none;right:-21px;top:24px;width:112px;height:112px;border:16px solid #ffffff06;transform:rotate(-25deg)}
+    .hero:after{right:50px;top:90px;width:50px;height:50px;border-width:8px}
+    .hero .eyebrow{color:#e7a47b;font-size:11px;margin-bottom:8px}
+    .hero h1{font-size:29px;line-height:1.45;position:relative}
+    .hero h1 span{color:#e8a17c}
+    .hero-description{font-size:13px;color:#b5c5d3;margin:5px 0 18px}
+    .search-form{display:flex;align-items:center;background:white;min-height:56px;border-radius:9px;gap:9px;padding:5px 6px 5px 14px;position:relative;box-shadow:0 4px 10px #071a2920}
+    .search-form>svg{color:#71808c;width:22px;flex-shrink:0}
+    .search-form input{width:100%;min-width:0;border:0;outline:none!important;background:transparent;color:var(--navy);font-size:17px;padding:6px 0}
+    .search-form input::placeholder{color:#798693}
+    .search-submit{height:44px;min-width:48px;border-radius:6px;background:var(--orange);color:white;display:grid;place-items:center}
+    .category-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+    .category{min-width:0;min-height:81px;padding:8px;overflow-wrap:anywhere;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;background:white;border:1px solid var(--line);border-radius:10px;font-size:13px;font-weight:650}
+    .category svg{width:24px;height:24px;color:#546b80}
+    .category:hover{border-color:#b8c5cf;background:#f9fbfc}
+    .member-list{display:grid;gap:12px}
+    .member-card{display:block;width:100%;padding:16px;text-align:left;overflow-wrap:anywhere}
     .avatar{width:49px;height:49px;flex-shrink:0;display:grid;place-items:center;border-radius:50%;background:#e6edf3;color:#33516b;font-size:23px;font-weight:650;border:1px solid #dce5ec}
-    .member-body{min-width:0;flex:1}
-    .member-name{display:flex;align-items:center;gap:8px;font-size:19px;font-weight:750}
+    .avatar.sand{background:#f4ebe1;color:#8d653e;border-color:#eadfd1}
+    .avatar.sage{background:#e7eeea;color:#526b5e;border-color:#dae5dd}
+    .avatar.large{width:78px;height:78px;font-size:34px;background:#e7edf2;border:5px solid white;box-shadow:0 3px 12px #102a4210}
+    .member-name{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;font-size:19px;font-weight:750}
     .member-role{font-size:11px;font-weight:500;background:#f0f3f5;padding:2px 6px;border-radius:4px;color:#667789}
-    .member-company{color:var(--muted);font-size:14px}
-    .member-products{font-size:14px;margin-top:4px}
-    .member-card-bottom{display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid #edf0f2;margin-top:10px;padding-top:9px}
-    .call{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:6px;background:var(--orange);color:#fff;text-decoration:none;font-weight:650;font-size:15px}
-    .call.secondary{background:#f0f3f5;color:var(--navy)}
-    .notice{margin:40px 20px;padding:24px;background:#fff;border-radius:12px;border:1px solid var(--line);text-align:center;color:var(--muted)}
-    .notice strong{display:block;color:var(--navy);font-size:18px;margin-bottom:6px}
+    .company{display:block;font-size:14px;color:var(--muted);margin-top:2px}
+    .member-link{display:block;flex:1;min-width:0}
+    .member-card .tags{margin:13px 0 0}
+    .member-heading-link{display:flex;gap:12px;align-items:center;min-width:0}
+    .member-heading-link .company{overflow-wrap:anywhere}
+    .search-panel{padding:0 20px 18px}
+    .search-panel .search-form{border:1px solid #ccd7df;box-shadow:none}
+    .search-help{font-size:13px;color:var(--muted);margin-top:10px}
+    .filter-scroll{display:flex;gap:8px;overflow:auto;padding:0 20px 10px;scrollbar-width:none}
+    .filter-chip{flex-shrink:0;min-height:44px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:white;font-size:14px}
+    .filter-chip.active{background:var(--navy);color:white;border-color:var(--navy)}
+    .results-header{padding:14px 20px 12px;display:flex;justify-content:space-between;align-items:center;font-size:14px}
+    .results-header strong{color:var(--orange)}
+    .empty{padding:32px 22px;text-align:center}
+    .empty>svg{width:35px;height:35px;color:#8b9ba8;margin-bottom:10px}
+    .back-link{min-height:44px;display:inline-flex;align-items:center;font-size:14px;gap:5px;background:transparent;padding:0}
+    .back-link svg{width:18px}
+    .member-profile{background:var(--navy);color:white;padding:13px 20px 28px;position:relative;overflow-wrap:anywhere}
+    .member-profile .back-link{color:#c4d2dd}
+    .profile-identity{display:flex;align-items:center;gap:16px;margin:17px 0 20px}
+    .profile-identity h1{font-size:28px}
+    .profile-identity p{font-size:14px;color:#b8c8d6;margin-top:2px}
+    .profile-company{font-size:20px;font-weight:700;margin-bottom:7px}
+    .member-profile .tag{background:#ffffff12;color:#e6edf3}
+    .member-profile .eyebrow{position:absolute;right:20px;top:29px;color:#bdcbd6;font-size:10px}
+    .detail-card{margin:18px 20px 0;padding:19px}
+    .detail-card h2{font-size:18px;margin-bottom:15px}
+    .contact-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .contact-grid .btn{min-height:55px;padding-inline:7px;font-size:15px;text-align:center}
+    .contact-grid .btn.email{background:#edf2f7;color:#3f5e7a;border-color:#dce5ef}
+    .info-row{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid #eef1f3}
+    .info-row:last-child{border-bottom:0;padding-bottom:0}
+    .info-row>svg{color:#7a8d9d;width:19px;flex-shrink:0;margin-top:5px}
+    .info-row>div{min-width:0}
+    .info-label{font-size:12px;color:#7a8792;margin-bottom:2px}
+    .info-value{font-size:15px;overflow-wrap:anywhere}
+    button,input{font:inherit}
+    button,a,input{-webkit-tap-highlight-color:transparent}
+    button,a{touch-action:manipulation}
+    button:focus-visible,a:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
+    button svg,a svg{flex-shrink:0}
+    h1,h2,h3,p{margin:0}
+    .bottom-nav[hidden]{display:none}
+    main:focus{outline:none}
+    .search-form:focus-within{outline:2px solid var(--orange);outline-offset:2px}
+    .home-members{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;padding:3px 20px 12px;margin:0 -20px}
+    .home-members .member-card{flex:0 0 84%;scroll-snap-align:center}
+    .member-heading-link>svg{color:var(--muted);width:17px}
+    .profile-identity>div{min-width:0}
+    .contact-grid:empty{display:none}
+    .results-list{padding:0 20px}
+    .notice strong{display:block;margin-bottom:3px;color:var(--navy);font-size:18px}
+    @media(min-width:600px){
+      body{background:linear-gradient(135deg,#eaf0f4,#d9e1e7)}
+      .shell{margin:28px auto;min-height:calc(100dvh - 56px);border-radius:20px;box-shadow:0 20px 75px #142b4322;overflow:clip;border:1px solid #d4dde4}
+      .bottom-nav{box-shadow:0 -4px 18px #142b4308}
+    }
+    @media(max-width:359px){
+      .site-header{padding-inline:15px}
+      .brand-name{font-size:16px}
+      .page-title,.hero,.member-profile{padding-inline:16px}
+      .section{padding-inline:16px}
+      .home-members{padding-inline:16px;margin-inline:-16px}
+      .member-card{padding:13px}
+      .avatar{width:43px;height:43px}
+      .category-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .detail-card{margin-inline:16px;padding:16px}
+    }
   </style>
 </head>
 <body>
-  <header class="site-header">
-    <span class="brand-mark" aria-hidden="true">H</span>
-    <div><div class="brand-name">鋼鐵拓展協會</div><div class="brand-sub">STEEL CONNECTION · 會員通訊錄</div></div>
-  </header>
-  <main id="app"><div class="notice"><strong>載入中…</strong>正在確認你的 LINE 身分</div></main>
+  <div class="shell">
+    <header class="site-header">
+      <button class="brand" id="brandHome" type="button" aria-label="鋼鐵拓展協會首頁" disabled>
+        <span class="brand-mark" aria-hidden="true">H</span>
+        <span><span class="brand-name">鋼鐵拓展協會</span><span class="brand-sub">STEEL CONNECTION · 會員服務</span></span>
+      </button>
+    </header>
+    <main id="app" tabindex="-1" aria-busy="true">
+      <div class="notice" role="status"><div><strong>載入中…</strong>正在確認你的 LINE 身分</div></div>
+    </main>
+    <nav class="bottom-nav" id="bottomNav" aria-label="主要導覽" hidden></nav>
+  </div>
+  <noscript>請開啟 JavaScript 以使用會員通訊錄。</noscript>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" charset="utf-8"></script>
   <script>
-    // 上線前把這兩個佔位字串換成真的值（見 ../README.md）。
+    'use strict';
+
     var CONFIG = {
       LIFF_ID: '2012555334-fxWC34mu',
       API_URL: 'https://script.google.com/macros/s/AKfycbyAfNbqEvhDx3UvkBIjQPmcm3Xsif7eMaOLThuBZHGqAd-drbU14dZiwr5O07opuAKL2w/exec'
     };
 
-    var app = document.getElementById('app');
-    var members = [];
+    const paths = {
+      home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
+      search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
+      arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>',
+      chevron:'<path d="m9 5 7 7-7 7"/>',
+      back:'<path d="m14 5-7 7 7 7"/>',
+      phone:'<path d="m7 3 3 5-3 2a16 16 0 0 0 7 7l2-3 5 3-1 4C10 23 1 14 3 4Z"/>',
+      mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/>',
+      pin:'<path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
+      chat:'<path d="M21 11a9 8 0 0 1-9 8H8l-5 3 1-6a8 8 0 0 1-1-5 9 8 0 0 1 18 0Z"/><path d="M7 10h10m-10 4h6"/>',
+      info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.2"/>',
+      steel:'<path d="M4 3h16v3h-6v12h6v3H4v-3h6V6H4Z"/>',
+      cut:'<path d="M12 2v7m-7 3h5m4 0h5m-7 3v7M5 5l3 3m8 8 3 3m0-14-3 3M8 16l-3 3"/><circle cx="12" cy="12" r="2"/>',
+      build:'<path d="M3 21h18M5 21V7l7-4 7 4v14M9 8v2m6-2v2M9 13v2m6-2v2m-5 6v-3h4v3"/>',
+      truck:'<path d="M2 6h12v12H2Zm12 5h4l4 4v3h-8"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/>',
+      users:'<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3m1-16a3 3 0 0 1 0 6m3 4a5 5 0 0 1 2 4v2"/>',
+      mobile:'<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 5h4m-3 14h2"/>',
+    };
 
-    function el(tag, cls, text) {
-      var n = document.createElement(tag);
-      if (cls) n.className = cls;
-      if (text !== undefined && text !== null) n.textContent = String(text); // 一律 textContent，不用 innerHTML 塞資料
-      return n;
+    const app = document.getElementById('app');
+    const brandHome = document.getElementById('brandHome');
+    const bottomNav = document.getElementById('bottomNav');
+    let members = [];
+    let categories = [];
+    let currentView = 'home';
+    let query = '';
+    let category = '';
+
+    function el(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function icon(name) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'icon');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('aria-hidden', 'true');
+      svg.innerHTML = paths[name]; // 圖示只使用上方寫死的 SVG 片段。
+      return svg;
+    }
+
+    function button(className, label, onClick) {
+      const node = el('button', className, label);
+      node.type = 'button';
+      node.addEventListener('click', onClick);
+      return node;
     }
 
     function showNotice(title, detail) {
-      app.replaceChildren();
-      var box = el('div', 'notice');
-      box.appendChild(el('strong', '', title));
-      if (detail) box.appendChild(document.createTextNode(detail));
-      app.appendChild(box);
+      const box = el('div', 'notice');
+      box.setAttribute('role', 'status');
+      const message = el('div');
+      message.append(el('strong', '', title), document.createTextNode(detail));
+      box.append(icon('info'), message);
+      app.replaceChildren(box);
+      app.setAttribute('aria-busy', 'false');
     }
 
-    function telHref(num) {
-      var digits = String(num || '').replace(/[^0-9+]/g, '');
-      return digits ? 'tel:' + digits : '';
+    function categoryIcon(label) {
+      if (/鋼材|鋼鐵|鋼板|型鋼/.test(label)) return 'steel';
+      if (/加工|切割|製造/.test(label)) return 'cut';
+      if (/工程|營造|施工/.test(label)) return 'build';
+      if (/物流|運輸|吊裝/.test(label)) return 'truck';
+      return 'users';
     }
 
-    function renderList(keyword) {
-      var kw = (keyword || '').trim().toLowerCase();
-      var list = document.getElementById('list');
-      list.replaceChildren();
-      var shown = members.filter(function (m) {
-        if (!kw) return true;
-        return [m.name, m.company, m.products, m.title, m.category].some(function (v) {
-          return String(v || '').toLowerCase().indexOf(kw) !== -1;
-        });
-      });
-      if (!shown.length) { list.appendChild(el('div', 'notice', '找不到符合的會員')); return; }
-      shown.forEach(function (m) {
-        var card = el('article', 'member-card');
-        card.appendChild(el('div', 'avatar', String(m.name || '?').slice(0, 1)));
-        var body = el('div', 'member-body');
-        var name = el('div', 'member-name', m.name);
-        if (m.title) name.appendChild(el('span', 'member-role', m.title));
-        body.appendChild(name);
-        if (m.company) body.appendChild(el('div', 'member-company', m.company + (m.companyTitle ? '｜' + m.companyTitle : '')));
-        if (m.products) body.appendChild(el('div', 'member-products', m.products));
-        var bottom = el('div', 'member-card-bottom');
-        [[m.mobile, '撥手機', 'call'], [m.phone, '撥市話', 'call secondary']].forEach(function (x) {
-          var href = telHref(x[0]);
-          if (!href) return;
-          var a = el('a', x[2], x[1]);
-          a.href = href;
-          bottom.appendChild(a);
-        });
-        if (bottom.childNodes.length) body.appendChild(bottom);
-        card.appendChild(body);
-        list.appendChild(card);
-      });
-    }
-
-    function renderDirectory() {
-      app.replaceChildren();
-      var panel = el('div', 'search-panel');
-      var form = el('div', 'search-form');
-      var input = el('input');
+    function searchForm(value, onSubmit, onInput) {
+      const form = el('form', 'search-form');
+      form.setAttribute('role', 'search');
+      const input = el('input');
       input.type = 'search';
-      input.placeholder = '搜尋姓名、公司或產品';
-      input.setAttribute('aria-label', '搜尋會員');
-      input.addEventListener('input', function () { renderList(input.value); });
-      form.appendChild(input);
-      panel.appendChild(form);
-      app.appendChild(panel);
-      var list = el('div', 'list');
-      list.id = 'list';
-      app.appendChild(list);
-      renderList('');
+      input.name = 'query';
+      input.autocomplete = 'off';
+      input.placeholder = '找產品或服務';
+      input.setAttribute('aria-label', '找產品或服務');
+      input.value = value;
+      const submit = el('button', 'search-submit');
+      submit.type = 'submit';
+      submit.setAttribute('aria-label', '開始搜尋');
+      submit.append(icon('arrow'));
+      form.append(icon('search'), input, submit);
+      if (onInput) input.addEventListener('input', () => onInput(input.value));
+      form.addEventListener('submit', event => {
+        event.preventDefault();
+        onSubmit(input.value);
+      });
+      return form;
+    }
+
+    function avatar(member, index, large = false) {
+      const className = large ? 'large' : ['', 'sand', 'sage'][index % 3];
+      const initials = Array.from(member.name)[0] || '?';
+      const node = el('span', ('avatar ' + className).trim(), initials);
+      node.setAttribute('aria-hidden', 'true');
+      return node;
+    }
+
+    function productTags(products) {
+      const tags = el('span', 'tags');
+      for (const product of products.split(/[,，、;；\r\n]+/)) {
+        if (product.trim()) tags.append(el('span', 'tag', product.trim()));
+      }
+      return tags;
+    }
+
+    function memberCard(member, index) {
+      const card = button('card member-card', '', () => navigate('detail', index));
+      card.setAttribute('aria-label', '查看' + member.name + '的會員名片');
+      const header = el('span', 'member-heading-link');
+      const identity = el('span', 'member-link');
+      const name = el('span', 'member-name');
+      name.append(el('span', '', member.name));
+      if (member.title) name.append(el('span', 'member-role', member.title));
+      identity.append(name);
+      const company = [member.company, member.companyTitle].filter(Boolean).join('｜');
+      if (company) identity.append(el('span', 'company', company));
+      header.append(avatar(member, index), identity, icon('chevron'));
+      card.append(header);
+      const tags = productTags(member.products);
+      if (tags.childElementCount) card.append(tags);
+      return card;
+    }
+
+    function homeSection(title, linkText, count) {
+      const section = el('section', 'section');
+      const header = el('div', 'section-heading');
+      const heading = el('h2', '', title);
+      if (count !== undefined) heading.append(el('span', 'count', count));
+      const link = button('text-link', linkText, () => openSearch());
+      link.append(icon('chevron'));
+      header.append(heading, link);
+      section.append(header);
+      return section;
+    }
+
+    function renderHome() {
+      const hero = el('section', 'hero');
+      const heading = el('h1', '', '好生意，從');
+      heading.append(el('span', '', '好夥伴'), document.createTextNode('開始。'));
+      hero.append(
+        el('div', 'eyebrow', '會員專屬・資源共享'),
+        heading,
+        el('p', 'hero-description', '把協會的人脈，變成彼此的好幫手。'),
+        searchForm('', value => openSearch(value))
+      );
+      app.replaceChildren(hero);
+
+      if (categories.length) {
+        const section = homeSection('依需求找夥伴', '全部分類');
+        const grid = el('div', 'category-grid');
+        for (const label of categories) {
+          const tile = button('category', label, () => openSearch('', label));
+          tile.prepend(icon(categoryIcon(label)));
+          grid.append(tile);
+        }
+        section.append(grid);
+        app.append(section);
+      }
+
+      const section = homeSection('認識協會夥伴', '查看全部', members.length);
+      if (members.length) {
+        const row = el('div', 'home-members');
+        members.slice(0, 8).forEach((member, index) => row.append(memberCard(member, index)));
+        section.append(row);
+      } else {
+        section.append(emptyState('目前沒有會員資料'));
+      }
+      app.append(section);
+    }
+
+    function emptyState(message) {
+      const box = el('div', 'card empty');
+      box.append(icon('search'), el('p', '', message));
+      return box;
+    }
+
+    function renderFind() {
+      const heading = el('div', 'page-title');
+      heading.append(
+        el('div', 'eyebrow', 'MEMBER DIRECTORY'),
+        el('h1', '', '找產品，也找到夥伴'),
+        el('p', 'subtitle', '協會的專長，隨時在你手上。')
+      );
+
+      const filters = el('div', 'filter-scroll');
+      filters.setAttribute('role', 'group');
+      filters.setAttribute('aria-label', '會員分類');
+      const summary = el('p', 'results-header');
+      summary.setAttribute('role', 'status');
+      const list = el('div', 'member-list');
+
+      function updateResults() {
+        const keyword = query.trim().toLowerCase();
+        const cards = [];
+        members.forEach((member, index) => {
+          if (category && member.category !== category) return;
+          if (keyword && ![member.products, member.company, member.name, member.title, member.companyTitle]
+            .some(value => value.toLowerCase().includes(keyword))) return;
+          cards.push(memberCard(member, index));
+        });
+        const label = el('span', '', (keyword ? '「' + query.trim() + '」' : (category || '全部會員')) + ' · 找到 ');
+        label.append(el('strong', '', cards.length), document.createTextNode(' 位夥伴'));
+        summary.replaceChildren(label);
+        list.replaceChildren(...(cards.length ? cards : [emptyState('找不到符合的會員')]));
+      }
+
+      function updateQuery(value) {
+        query = value;
+        updateResults();
+      }
+
+      const panel = el('div', 'search-panel');
+      panel.append(searchForm(query, updateQuery, updateQuery), el('p', 'search-help', '搜尋姓名、公司、職稱或產品。'));
+      if (categories.length) {
+        for (const label of ['', ...categories]) {
+          const chip = button('filter-chip', label || '全部', () => {
+            category = label;
+            const previous = filters.querySelector('[aria-pressed="true"]');
+            previous.classList.remove('active');
+            previous.setAttribute('aria-pressed', 'false');
+            chip.classList.add('active');
+            chip.setAttribute('aria-pressed', 'true');
+            updateResults();
+          });
+          chip.classList.toggle('active', label === category);
+          chip.setAttribute('aria-pressed', String(label === category));
+          filters.append(chip);
+        }
+      }
+
+      const results = el('div', 'results-list');
+      results.append(list);
+      app.replaceChildren(heading, panel);
+      if (categories.length) app.append(filters);
+      app.append(summary, results);
+      const active = filters.querySelector('.active');
+      if (active) filters.scrollLeft = active.offsetLeft - filters.offsetLeft - 20;
+      updateResults();
+    }
+
+    function telHref(value) {
+      const digits = value.replace(/[^0-9]/g, '');
+      return digits ? 'tel:' + (value.startsWith('+') ? '+' : '') + digits : '';
+    }
+
+    function renderMember(member, index, from) {
+      const profile = el('section', 'member-profile');
+      const back = button('back-link', from === 'home' ? '回首頁' : '回會員列表', () => history.back());
+      back.prepend(icon('back'));
+      const identity = el('div', 'profile-identity');
+      const name = el('div');
+      name.append(el('h1', '', member.name));
+      const titles = [member.title, member.companyTitle].filter(Boolean).join(' · ');
+      if (titles) name.append(el('p', '', titles));
+      identity.append(avatar(member, index, true), name);
+      profile.append(back, el('div', 'eyebrow', '會員電子名片'), identity);
+      if (member.company) profile.append(el('div', 'profile-company', member.company));
+      const tags = productTags(member.products);
+      if (member.category) tags.append(el('span', 'tag', member.category));
+      if (tags.childElementCount) profile.append(tags);
+
+      const contacts = el('section', 'card detail-card');
+      const actions = el('div', 'contact-grid');
+      const rows = el('div', 'contact-info');
+      const emailHref = /^[^\s@]+@[^\s@]+$/.test(member.email)
+        ? 'mailto:' + encodeURIComponent(member.email).replace('%40', '@') : '';
+      const mapHref = member.address
+        ? 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(member.address) + '&dir_action=navigate'
+        : '';
+      const fields = [
+        ['mobile', '手機號碼', member.mobile, '撥手機', telHref(member.mobile), ''],
+        ['phone', '市話', member.phone, '撥市話', telHref(member.phone), ''],
+        ['chat', 'LINE ID', member.lineId, '', '', ''],
+        ['mail', '電子信箱', member.email, '寄送 Email', emailHref, 'email'],
+        ['pin', '公司地址', member.address, '地圖導航', mapHref, 'light']
+      ];
+      for (const [glyph, label, value, action, href, tone] of fields) {
+        if (!value) continue;
+        const row = el('div', 'info-row');
+        const info = el('div');
+        info.append(el('div', 'info-label', label), el('div', 'info-value', value));
+        row.append(icon(glyph), info);
+        rows.append(row);
+        if (!href) continue;
+        const link = el('a', ('btn ' + tone).trim(), action);
+        link.setAttribute('href', href);
+        if (glyph === 'pin') {
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+        }
+        link.prepend(icon(glyph));
+        actions.append(link);
+      }
+      app.replaceChildren(profile);
+      if (rows.childElementCount) {
+        contacts.append(el('h2', '', '直接聯繫'), actions, rows);
+        app.append(contacts);
+      }
+    }
+
+    function renderPage(state, focus = false) {
+      const { view, memberIndex, from } = state || {};
+      currentView = view === 'find' || (view === 'detail' && members[memberIndex]) ? view : 'home';
+      if (currentView === 'detail') renderMember(members[memberIndex], memberIndex, from);
+      else if (currentView === 'find') renderFind();
+      else renderHome();
+
+      const activeTab = currentView === 'detail' ? from : currentView;
+      for (const tab of bottomNav.children) {
+        const active = tab.dataset.view === activeTab;
+        tab.classList.toggle('active', active);
+        if (active) tab.setAttribute('aria-current', 'page');
+        else tab.removeAttribute('aria-current');
+      }
+      if (focus) {
+        app.focus({ preventScroll: true });
+        window.scrollTo(0, 0);
+      }
+    }
+
+    function navigate(view, memberIndex) {
+      const state = { view, memberIndex, from: view === 'detail' ? currentView : null };
+      if (view !== currentView) history.pushState(state, '');
+      renderPage(state, true);
+    }
+
+    function openSearch(value = '', label = '') {
+      query = value;
+      category = label;
+      navigate('find');
+    }
+
+    function renderDirectory(apiMembers) {
+      const fields = ['name', 'title', 'company', 'companyTitle', 'products', 'category', 'mobile', 'phone', 'lineId', 'email', 'address'];
+      members = apiMembers.map(member => Object.fromEntries(
+        fields.map(field => [field, String(member?.[field] ?? '').trim()])
+      ));
+      categories = [...new Set(members.map(member => member.category).filter(Boolean))];
+      const tabs = [
+        ['home', '首頁', 'home'],
+        ['find', '找夥伴', 'search']
+      ];
+      for (const [view, label, glyph] of tabs) {
+        const tab = button('nav-item', label, () => navigate(view));
+        tab.dataset.view = view;
+        tab.prepend(icon(glyph));
+        bottomNav.append(tab);
+      }
+      history.replaceState({ view: 'home' }, '');
+      window.addEventListener('popstate', event => renderPage(event.state, true));
+      brandHome.addEventListener('click', () => navigate('home'));
+      renderPage();
+      brandHome.disabled = false;
+      bottomNav.hidden = false;
+      app.setAttribute('aria-busy', 'false');
     }
 
     // 重新登入旗標：瀏覽器禁用儲存時不丟例外（拿不到就當沒試過，最多多登入一次）。
@@ -151,8 +552,7 @@
         }
         setFlag(null);
         if (!data || !data.ok) { showNotice('你不在群組內，無法查看', '只有本會 LINE 群組的成員可以開啟通訊錄'); return; }
-        members = Array.isArray(data.members) ? data.members : [];
-        renderDirectory();
+        renderDirectory(Array.isArray(data.members) ? data.members : []);
       } catch (err) {
         showNotice('載入失敗', '請稍後再試，或從群組重新開啟');
       }
