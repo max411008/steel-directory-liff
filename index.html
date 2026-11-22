@@ -122,6 +122,43 @@
     .contact-grid:empty{display:none}
     .results-list{padding:0 20px}
     .notice strong{display:block;margin-bottom:3px;color:var(--navy);font-size:18px}
+    .bottom-nav.has-admin{grid-template-columns:repeat(3,1fr)}
+    .admin-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:0 20px}
+    .admin-stat{background:white;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;font-size:12px;color:var(--muted)}
+    .admin-stat strong{display:block;color:var(--navy);font-size:25px}
+    .admin-toolbar{display:flex;gap:8px;margin-bottom:12px}
+    .admin-toolbar .btn{flex:1;padding-inline:7px}
+    .admin-search{width:100%;min-height:48px;border:1px solid #ccd7df;border-radius:9px;padding:8px 12px;margin-bottom:12px;color:var(--navy);background:white}
+    .admin-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:white}
+    .admin-table{width:100%;border-collapse:collapse;text-align:left;font-size:14px}
+    .admin-table th,.admin-table td{padding:10px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+    .admin-table th{background:#e8eef2;color:#52697a;font-size:12px;white-space:nowrap}
+    .admin-table tr:last-child td{border-bottom:0}
+    .admin-table tr.inactive{background:#f8f9fa}
+    .admin-member-name{min-height:44px;padding:0;background:transparent;text-align:left;font-weight:750}
+    .admin-table small{display:block;color:var(--muted)}
+    .admin-actions{display:flex;gap:5px}
+    .admin-actions button{min-width:44px;min-height:44px;padding:5px 7px;border-radius:7px;background:#ecf1f4;color:#36536a;font-size:12px;white-space:nowrap}
+    .admin-actions .danger{background:#f9efe9;color:#a34223}
+    .admin-badge{display:inline-block;white-space:nowrap;background:#e7f0eb;color:#20634c;border-radius:6px;padding:3px 7px;font-size:12px;font-weight:650}
+    .admin-badge.inactive{background:#ebeff2;color:#596a78}
+    .admin-badge.warning{background:#faeee6;color:#a34223}
+    .admin-panel{padding:16px}
+    .admin-panel .admin-toolbar{margin:15px 0 0}
+    .admin-field{display:block;margin-bottom:13px;font-size:14px;font-weight:650}
+    .admin-field input,.admin-field select,.admin-field textarea{display:block;width:100%;min-height:46px;margin-top:5px;padding:8px 10px;border:1px solid #ccd7df;border-radius:8px;color:var(--navy);background:white;font:inherit;font-size:16px;font-weight:400}
+    .admin-field textarea{min-height:80px;resize:vertical}
+    .admin-panel fieldset{border:0;margin:0;padding:0;min-width:0}
+    .admin-status{margin:8px 0;font-size:14px;color:var(--navy2)}
+    .admin-status:empty{display:none}
+    .admin-status.error{color:#a34223}
+    .admin-mapping{display:grid;gap:4px;padding:9px 0;font-size:13px;color:var(--muted)}
+    .admin-preview{max-height:46vh;overflow:auto}
+    .admin-preview th{position:sticky;top:0}
+    .admin-preview td:nth-child(3){min-width:90px}
+    .admin-panel button:disabled,.admin-actions button:disabled{opacity:.55;cursor:default}
+    .admin-screen>.page-title{padding-bottom:8px}
+    .admin-screen>.section{margin-top:12px}
     @media(min-width:600px){
       body{background:linear-gradient(135deg,#eaf0f4,#d9e1e7)}
       .shell{margin:28px auto;min-height:calc(100dvh - 56px);border-radius:20px;box-shadow:0 20px 75px #142b4322;overflow:clip;border:1px solid #d4dde4}
@@ -181,6 +218,9 @@
       truck:'<path d="M2 6h12v12H2Zm12 5h4l4 4v3h-8"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/>',
       users:'<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3m1-16a3 3 0 0 1 0 6m3 4a5 5 0 0 1 2 4v2"/>',
       mobile:'<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 5h4m-3 14h2"/>',
+      shield:'<path d="m12 2 8 4v5c0 5-3 8-8 11-5-3-8-6-8-11V6Z"/><path d="m9 12 2 2 4-4"/>',
+      plus:'<path d="M12 4v16M4 12h16"/>',
+      upload:'<path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/>',
     };
 
     const app = document.getElementById('app');
@@ -191,6 +231,16 @@
     let currentView = 'home';
     let query = '';
     let category = '';
+    let isAdmin = false;
+    let adminMembers = [];
+    let adminQuery = '';
+
+    const MEMBER_FIELDS = [
+      ['會員編號', 'id'], ['姓名', 'name'], ['職稱', 'title'], ['公司', 'company'],
+      ['公司職稱', 'companyTitle'], ['產品服務／專長', 'products'], ['分類', 'category'],
+      ['手機', 'mobile'], ['市話', 'phone'], ['LINE ID', 'lineId'], ['Email', 'email'],
+      ['地址', 'address'], ['狀態', 'status'], ['排序', 'sort'], ['備註', 'note']
+    ];
 
     function el(tag, className, text) {
       const node = document.createElement(tag);
@@ -467,11 +517,432 @@
       }
     }
 
+    function adminMessage(status, text, error = false) {
+      status.classList.toggle('error', error);
+      status.textContent = text;
+    }
+
+    function adminError(reason) {
+      const messages = {
+        not_admin: '管理員身分已失效。請從 LINE 群組重新開啟通訊錄。',
+        invalid_token: 'LINE 身分已過期。請從 LINE 群組重新開啟通訊錄。',
+        not_found: '找不到此會員編號。',
+        required_fields: '請填寫姓名與手機。',
+        invalid_member: '請提供要異動的會員欄位。',
+        invalid_status: '狀態須為啟用或停用。',
+        invalid_sort: '排序須為數字。',
+        invalid_headers: '「會員」分頁缺少必要表頭。',
+        dup_mobile: '這個手機已由其他會員使用。',
+        busy: '其他管理員正在儲存。請稍後再試。'
+      };
+      return messages[reason] || '操作未完成。請稍後再試。';
+    }
+
+    function adminTable(columns, label) {
+      const wrap = el('div', 'admin-table-wrap');
+      wrap.tabIndex = 0;
+      wrap.setAttribute('role', 'region');
+      wrap.setAttribute('aria-label', label);
+      const table = el('table', 'admin-table');
+      const header = el('tr');
+      for (const name of columns) {
+        const cell = el('th', '', name);
+        cell.scope = 'col';
+        header.append(cell);
+      }
+      const head = el('thead');
+      const body = el('tbody');
+      head.append(header);
+      table.append(head, body);
+      wrap.append(table);
+      return { wrap, body };
+    }
+
+    function adminStatus() {
+      const status = el('p', 'admin-status');
+      status.setAttribute('role', 'status');
+      return status;
+    }
+
+    function renderAdmin(message = '') {
+      const heading = el('div', 'page-title');
+      heading.append(el('div', 'eyebrow', 'ADMIN CONSOLE'), el('h1', '', '協會管理後台'));
+      const summary = el('div', 'admin-summary');
+      for (const [label, count] of [['會員總數', adminMembers.length], ['啟用會員', members.length]]) {
+        const stat = el('div', 'admin-stat', label);
+        stat.prepend(el('strong', '', count));
+        summary.append(stat);
+      }
+
+      const section = el('section', 'section');
+      const title = el('div', 'section-heading');
+      title.append(el('h2', '', '會員管理'));
+      const toolbar = el('div', 'admin-toolbar');
+      const add = button('btn', '新增會員', () => renderAdminEditor());
+      add.prepend(icon('plus'));
+      const csv = button('btn light', 'CSV 匯入', renderAdminImport);
+      csv.prepend(icon('upload'));
+      toolbar.append(add, csv);
+      const search = el('input', 'admin-search');
+      search.type = 'search';
+      search.placeholder = '搜尋姓名、公司、手機或會員編號';
+      search.setAttribute('aria-label', search.placeholder);
+      search.value = adminQuery;
+      const status = adminStatus();
+      adminMessage(status, message);
+      const { wrap, body } = adminTable(['姓名／公司', '狀態', '管理操作'], '會員管理表格');
+
+      function updateResults() {
+        const keyword = adminQuery.trim().toLowerCase();
+        const visible = adminMembers.filter(member =>
+          [member.name, member.company, member.mobile, member.id].some(value => value.toLowerCase().includes(keyword)));
+        body.replaceChildren();
+        for (const member of visible) {
+          const inactive = member.status === '停用';
+          const row = el('tr', inactive ? 'inactive' : '');
+          const identity = el('td');
+          const badge = el('td');
+          const actionsCell = el('td');
+          const actions = el('div', 'admin-actions');
+          const name = button('admin-member-name', member.name || member.id, () => renderAdminEditor(member));
+          const edit = button('', '編輯', () => renderAdminEditor(member));
+          const toggle = button(inactive ? '' : 'danger', inactive ? '啟用' : '停用',
+            () => changeMemberStatus(member, toggle, section, status));
+          edit.setAttribute('aria-label', '編輯' + member.name);
+          toggle.setAttribute('aria-label', toggle.textContent + member.name);
+          for (const control of [name, edit, toggle]) control.disabled = !member.id;
+          identity.append(name);
+          if (member.company) identity.append(el('small', '', member.company));
+          badge.append(el('span', 'admin-badge' + (inactive ? ' inactive' : ''), inactive ? '停用' : '啟用'));
+          actions.append(edit, toggle);
+          actionsCell.append(actions);
+          row.append(identity, badge, actionsCell);
+          body.append(row);
+        }
+        if (!visible.length) {
+          const row = el('tr');
+          const cell = el('td', '', keyword ? '找不到符合的會員' : '目前沒有會員資料');
+          cell.colSpan = 3;
+          row.append(cell);
+          body.append(row);
+        }
+      }
+
+      search.addEventListener('input', () => {
+        adminQuery = search.value;
+        updateResults();
+      });
+      updateResults();
+      section.append(title, toolbar, search, status, wrap);
+      app.replaceChildren(heading, summary, section);
+    }
+
+    async function changeMemberStatus(member, toggle, section, status) {
+      const next = member.status === '停用' ? '啟用' : '停用';
+      if (next === '停用' && !window.confirm('確定停用「' + member.name + '」？')) return;
+      toggle.disabled = true;
+      let saved = false;
+      try {
+        const data = await directoryRequest('admin.setStatus', { id: member.id, status: next });
+        if (!data.ok) return adminMessage(status, adminError(data.reason), true);
+        saved = true;
+        await refreshAfterAdminWrite(section, status, '已' + next + '「' + member.name + '」。');
+      } catch (err) {
+        adminMessage(status, adminError(), true);
+      } finally {
+        if (!saved) toggle.disabled = false;
+      }
+    }
+
+    function adminPanel(title) {
+      const screen = el('div', 'admin-screen');
+      const heading = el('div', 'page-title');
+      const back = button('back-link', '回會員管理', () => navigate('admin'));
+      back.prepend(icon('back'));
+      heading.append(back, el('h1', '', title));
+      const section = el('section', 'section');
+      const panel = el('div', 'admin-panel card');
+      section.append(panel);
+      screen.append(heading, section);
+      app.replaceChildren(screen);
+      app.focus({ preventScroll: true });
+      window.scrollTo(0, 0);
+      return panel;
+    }
+
+    function renderAdminEditor(member = null) {
+      const panel = adminPanel(member ? '編輯會員' : '新增會員');
+      const form = el('form');
+      const fields = el('fieldset');
+      const inputs = new Map();
+      for (const [label, key] of MEMBER_FIELDS) {
+        if (key === 'id' && !member) continue;
+        const required = key === 'name' || key === 'mobile';
+        const field = el('label', 'admin-field', label + (required ? '（必填）' : ''));
+        const input = el(key === 'note' ? 'textarea' : key === 'status' ? 'select' : 'input');
+        if (key === 'status') {
+          for (const value of ['啟用', '停用']) input.append(el('option', '', value));
+        } else if (key === 'sort') {
+          input.type = 'number';
+          input.step = 'any';
+        } else if (key === 'mobile' || key === 'phone') {
+          input.type = 'tel';
+        }
+        input.value = member?.[key] || (key === 'status' ? '啟用' : '');
+        input.required = required;
+        if (key === 'id') input.readOnly = true;
+        inputs.set(key, input);
+        field.append(input);
+        fields.append(field);
+      }
+      const actions = el('div', 'admin-toolbar');
+      const save = el('button', 'btn', '儲存資料');
+      save.type = 'submit';
+      actions.append(button('btn light', '取消', () => navigate('admin')), save);
+      fields.append(actions);
+      const status = adminStatus();
+      form.append(status, fields);
+      panel.append(form);
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (fields.disabled) return;
+        const record = Object.fromEntries([...inputs].map(([key, input]) => [key, input.value.trim()]));
+        if (!record.name || !record.mobile) {
+          adminMessage(status, adminError('required_fields'), true);
+          return;
+        }
+        fields.disabled = true;
+        adminMessage(status, '正在儲存…');
+        let saved = false;
+        try {
+          let data = await directoryRequest('admin.upsert', { member: record });
+          if (data.reason === 'dup_mobile') {
+            const duplicate = [data.name, data.id].filter(Boolean).join('・') || '另一位會員';
+            if (!panel.isConnected || !window.confirm('與 ' + duplicate + ' 的手機重複，仍要儲存？')) {
+              adminMessage(status, '手機重複，已取消儲存。');
+              return;
+            }
+            data = await directoryRequest('admin.upsert', { member: record, force: true });
+          }
+          if (!data.ok) return adminMessage(status, adminError(data.reason), true);
+          saved = true;
+          await refreshAfterAdminWrite(panel, status, '已儲存「' + record.name + '」。');
+        } catch (err) {
+          adminMessage(status, adminError(), true);
+        } finally {
+          if (!saved) fields.disabled = false;
+        }
+      });
+    }
+
+    function parseMemberCsv(text) {
+      const records = [];
+      let record = [];
+      let value = '';
+      let state = 'start';
+      text = text.replace(/^\uFEFF/, '');
+      for (let index = 0; index < text.length; index++) {
+        const char = text[index];
+        if (state === 'quoted') {
+          if (char === '"' && text[index + 1] === '"') {
+            value += '"';
+            index++;
+          } else if (char === '"') {
+            state = 'closed';
+          } else {
+            value += char;
+          }
+        } else if (char === ',' || char === '\n' || char === '\r') {
+          record.push(value);
+          value = '';
+          state = 'start';
+          if (char === ',') continue;
+          if (char === '\r' && text[index + 1] === '\n') index++;
+          records.push(record);
+          record = [];
+        } else if (char === '"' && state === 'start') {
+          state = 'quoted';
+        } else if (char === '"' || state === 'closed') {
+          throw new Error('CSV 第 ' + (records.length + 1) + ' 筆的引號格式錯誤。');
+        } else {
+          value += char;
+          state = 'unquoted';
+        }
+      }
+      if (state === 'quoted') throw new Error('CSV 最後一個引號欄位尚未關閉。');
+      if (record.length || state !== 'start') records.push([...record, value]);
+      if (!records.length) throw new Error('CSV 沒有表頭或資料。');
+
+      const [headers, ...body] = records;
+      const mapping = new Map(MEMBER_FIELDS);
+      const columns = headers.map(label => mapping.get(label.trim()));
+      const known = columns.filter(Boolean);
+      if (new Set(known).size !== known.length) throw new Error('CSV 含有重複的會員表頭。');
+      if (!known.includes('id') && !(known.includes('name') && known.includes('mobile'))) {
+        throw new Error('表頭須包含「會員編號」，或同時包含「姓名」與「手機」。');
+      }
+      const rows = [];
+      const numbers = [];
+      for (const [index, cells] of body.entries()) {
+        if (cells.every(cell => !cell.trim())) continue;
+        if (cells.length > headers.length) throw new Error('CSV 第 ' + (index + 2) + ' 筆的欄位數超過表頭。');
+        const member = {};
+        for (const [column, key] of columns.entries()) {
+          if (key && column < cells.length) member[key] = cells[column].trim();
+        }
+        rows.push(member);
+        numbers.push(index + 2);
+      }
+      if (!rows.length) throw new Error('CSV 沒有可匯入的資料。');
+      return { headers, columns, rows, numbers };
+    }
+
+    function renderImportRows(preview, parsed, result) {
+      const { wrap, body } = adminTable(['列', '姓名／手機', '結果'], 'CSV 匯入明細');
+      wrap.classList.add('admin-preview');
+      for (const item of result.rows) {
+        const source = parsed.rows[item.row - 1];
+        const row = el('tr');
+        const identity = el('td', '', item.name || source.name || source.id || '—');
+        if (source.mobile) identity.append(el('small', '', source.mobile));
+        const detail = el('td');
+        const labels = { add: '新增', update: '更新', dup_mobile: '重複手機', invalid: '資料有誤' };
+        const warning = item.action === 'dup_mobile' || item.action === 'invalid';
+        detail.append(el('span', 'admin-badge' + (warning ? ' warning' : ''), labels[item.action]));
+        if (item.action === 'dup_mobile') {
+          detail.append(el('small', '', '與 ' + [item.duplicateName, item.id].filter(Boolean).join('・') + ' 重複'));
+        } else if (item.action === 'invalid') {
+          detail.append(el('small', '', adminError(item.reason)));
+        } else if (item.id) {
+          detail.append(el('small', '', item.id));
+        }
+        row.append(el('td', '', parsed.numbers[item.row - 1]), identity, detail);
+        body.append(row);
+      }
+      preview.replaceChildren(wrap);
+    }
+
+    function importCount(counts) {
+      return '新增 ' + counts.added + ' 筆、更新 ' + counts.updated + ' 筆、重複手機 ' +
+        counts.duplicates + ' 筆、資料有誤 ' + counts.invalid + ' 筆。';
+    }
+
+    function renderAdminImport() {
+      const panel = adminPanel('CSV 匯入');
+      const field = el('label', 'admin-field', '選擇 CSV 檔案');
+      const file = el('input');
+      file.type = 'file';
+      file.accept = '.csv,text/csv';
+      field.append(file);
+      const mapping = el('div', 'admin-mapping');
+      const preview = el('div');
+      const status = adminStatus();
+      const actions = el('div', 'admin-toolbar');
+      const commit = button('btn', '確認寫入', commitImport);
+      commit.disabled = true;
+      actions.append(button('btn light', '回會員管理', () => navigate('admin')), commit);
+      panel.append(field, el('p', 'subtitle', '使用 UTF-8 編碼，第一列填試算表表頭。重複手機及資料有誤的列會跳過。'),
+        mapping, status, preview, actions);
+      let parsed;
+
+      file.addEventListener('change', async () => {
+        parsed = null;
+        commit.disabled = true;
+        mapping.replaceChildren();
+        preview.replaceChildren();
+        const selected = file.files[0];
+        adminMessage(status, selected ? '正在檢查匯入資料…' : '');
+        if (!selected) return;
+        file.disabled = true;
+        try {
+          let text;
+          try {
+            text = new TextDecoder('utf-8', { fatal: true }).decode(await selected.arrayBuffer());
+          } catch (error) {
+            throw new Error('無法讀取檔案，請以 UTF-8 格式另存為 CSV。');
+          }
+          const candidate = parseMemberCsv(text);
+          const fields = candidate.headers.filter((label, index) => candidate.columns[index]).map(label => label.trim());
+          const ignored = candidate.headers.filter((label, index) => !candidate.columns[index]).map(label => label.trim() || '（空白表頭）');
+          mapping.append(el('p', '', '對應欄位：' + fields.join('、')));
+          if (ignored.length) mapping.append(el('p', '', '略過欄位：' + ignored.join('、')));
+          const result = await directoryRequest('admin.import', { rows: candidate.rows, dryRun: true });
+          if (!result.ok) return adminMessage(status, adminError(result.reason), true);
+          parsed = candidate;
+          renderImportRows(preview, parsed, result);
+          adminMessage(status, '預覽 · ' + importCount(result.counts));
+          commit.disabled = result.counts.added + result.counts.updated === 0;
+        } catch (err) {
+          adminMessage(status, err.message || adminError(), true);
+        } finally {
+          file.disabled = false;
+        }
+      });
+
+      async function commitImport() {
+        if (!parsed || commit.disabled) return;
+        file.disabled = true;
+        commit.disabled = true;
+        adminMessage(status, '正在匯入…');
+        let saved = false;
+        try {
+          const result = await directoryRequest('admin.import', { rows: parsed.rows, dryRun: false });
+          if (!result.ok) return adminMessage(status, adminError(result.reason), true);
+          saved = true;
+          renderImportRows(preview, parsed, result);
+          await refreshAfterAdminWrite(panel, status, '匯入結果 · ' + importCount(result.counts), true);
+        } catch (err) {
+          adminMessage(status, adminError(), true);
+        } finally {
+          file.disabled = false;
+          if (!saved) commit.disabled = false;
+        }
+      }
+    }
+
+    async function directoryRequest(action, fields = {}) {
+      // 用 text/plain POST，讓 ID token 留在內容中，也不觸發跨站預檢。
+      const response = await fetch(CONFIG.API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ ...fields, action, id_token: liff.getIDToken() })
+      });
+      if (!response.ok) throw new Error('無法連線，請稍後再試。');
+      return response.json();
+    }
+
+    async function refreshAfterAdminWrite(origin, status, message, keepPanel = false) {
+      try {
+        const data = await directoryRequest('directory');
+        if (!data.ok) throw new Error();
+        const wasAdmin = isAdmin;
+        updateDirectoryData(data);
+        if (wasAdmin !== isAdmin) renderNavigation();
+        if (currentView !== 'admin' || !isAdmin) {
+          renderPage(history.state);
+        } else if (origin.isConnected) {
+          if (keepPanel) {
+            adminMessage(status, message);
+          } else {
+            renderAdmin(message);
+            if (origin.classList.contains('admin-panel')) {
+              app.focus({ preventScroll: true });
+              window.scrollTo(0, 0);
+            }
+          }
+        }
+      } catch (err) {
+        adminMessage(status, message + ' 重新載入會員清單失敗，請重新開啟通訊錄。', true);
+      }
+    }
+
     function renderPage(state, focus = false) {
-      const { view, memberIndex, from } = state || {};
-      currentView = view === 'find' || (view === 'detail' && members[memberIndex]) ? view : 'home';
-      if (currentView === 'detail') renderMember(members[memberIndex], memberIndex, from);
+      const { view, memberIndex, memberId, from } = state || {};
+      const index = memberId ? members.findIndex(member => member.id === memberId) : memberIndex;
+      currentView = view === 'find' || (view === 'detail' && members[index]) || (view === 'admin' && isAdmin) ? view : 'home';
+      if (currentView === 'detail') renderMember(members[index], index, from);
       else if (currentView === 'find') renderFind();
+      else if (currentView === 'admin') renderAdmin();
       else renderHome();
 
       const activeTab = currentView === 'detail' ? from : currentView;
@@ -488,7 +959,7 @@
     }
 
     function navigate(view, memberIndex) {
-      const state = { view, memberIndex, from: view === 'detail' ? currentView : null };
+      const state = { view, memberIndex, memberId: members[memberIndex]?.id, from: view === 'detail' ? currentView : null };
       if (view !== currentView) history.pushState(state, '');
       renderPage(state, true);
     }
@@ -499,22 +970,38 @@
       navigate('find');
     }
 
-    function renderDirectory(apiMembers) {
-      const fields = ['name', 'title', 'company', 'companyTitle', 'products', 'category', 'mobile', 'phone', 'lineId', 'email', 'address'];
-      members = apiMembers.map(member => Object.fromEntries(
+    function updateDirectoryData(data) {
+      isAdmin = data.isAdmin === true;
+      const apiMembers = Array.isArray(data.members) ? data.members : [];
+      const fields = MEMBER_FIELDS.map(([, field]) => field);
+      const records = apiMembers.map(member => Object.fromEntries(
         fields.map(field => [field, String(member?.[field] ?? '').trim()])
       ));
+      adminMembers = isAdmin ? records : [];
+      members = records.filter(member => member.status !== '停用');
       categories = [...new Set(members.map(member => member.category).filter(Boolean))];
+      if (!categories.includes(category)) category = '';
+    }
+
+    function renderNavigation() {
       const tabs = [
         ['home', '首頁', 'home'],
         ['find', '找夥伴', 'search']
       ];
+      if (isAdmin) tabs.push(['admin', '後台', 'shield']);
+      bottomNav.classList.toggle('has-admin', isAdmin);
+      bottomNav.replaceChildren();
       for (const [view, label, glyph] of tabs) {
         const tab = button('nav-item', label, () => navigate(view));
         tab.dataset.view = view;
         tab.prepend(icon(glyph));
         bottomNav.append(tab);
       }
+    }
+
+    function renderDirectory(data) {
+      updateDirectoryData(data);
+      renderNavigation();
       history.replaceState({ view: 'home' }, '');
       window.addEventListener('popstate', event => renderPage(event.state, true));
       brandHome.addEventListener('click', () => navigate('home'));
@@ -534,15 +1021,8 @@
       try {
         await liff.init({ liffId: CONFIG.LIFF_ID });
         if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
-        var idToken = liff.getIDToken();
-        if (!idToken) { showNotice('無法取得 LINE 身分', '請從群組裡的「開啟通訊錄」按鈕進來'); return; }
-        // 用 text/plain POST：ID token 不放網址（避免留在紀錄），也不會觸發跨站預檢。
-        var res = await fetch(CONFIG.API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'directory', id_token: idToken })
-        });
-        var data = await res.json();
+        if (!liff.getIDToken()) { showNotice('無法取得 LINE 身分', '請從群組裡的「開啟通訊錄」按鈕進來'); return; }
+        var data = await directoryRequest('directory');
         if (data && data.reason === 'invalid_token' && !getFlag()) {
           // ID token 過期（LIFF 會沿用舊 token）：重新登入一次拿新的，只試一次避免無限迴圈。
           setFlag('1');
@@ -552,7 +1032,7 @@
         }
         setFlag(null);
         if (!data || !data.ok) { showNotice('你不在群組內，無法查看', '只有本會 LINE 群組的成員可以開啟通訊錄'); return; }
-        renderDirectory(Array.isArray(data.members) ? data.members : []);
+        renderDirectory(data);
       } catch (err) {
         showNotice('載入失敗', '請稍後再試，或從群組重新開啟');
       }
