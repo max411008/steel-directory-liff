@@ -98,6 +98,10 @@
     .admin-panel button:disabled,.admin-actions button:disabled{opacity:.55;cursor:default}
     .admin-screen>.page-title{padding-bottom:8px}
     .admin-screen>.section{margin-top:12px}
+    .admin-nav{display:flex;gap:8px;padding:12px 20px 0}
+    .admin-nav[hidden]{display:none}
+    .admin-nav .btn{min-height:42px;padding:8px 12px;font-size:14px}
+    .admin-nav a{margin-left:auto}
   </style>
 </head>
 <body>
@@ -105,7 +109,7 @@
     <header class="site-header">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true">H</span>
-        <span><span class="brand-name">鋼鐵拓展協會</span><span class="brand-sub">STEEL CONNECTION · 會員管理</span></span>
+        <span><span class="brand-name">鋼鐵拓展協會</span><span class="brand-sub">STEEL CONNECTION · 協會管理</span></span>
       </div>
       <div class="account" id="account" hidden>
         <span id="accountName"></span>
@@ -113,6 +117,11 @@
       </div>
     </header>
     <p class="admin-status error" id="headerStatus" role="status"></p>
+    <nav class="admin-nav" id="adminNav" aria-label="後台分頁" hidden>
+      <button class="btn" id="memberTab" type="button" aria-current="page">會員</button>
+      <button class="btn light" id="eventTab" type="button">活動</button>
+      <a class="btn light" href="index.html">看前台</a>
+    </nav>
     <main id="app" tabindex="-1"></main>
   </div>
   <noscript>請開啟 JavaScript 以使用管理後台。</noscript>
@@ -120,13 +129,17 @@
   <script>
     'use strict';
 
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyAfNbqEvhDx3UvkBIjQPmcm3Xsif7eMaOLThuBZHGqAd-drbU14dZiwr5O07opuAKL2w/exec';
+    // 部署或回滾時，與 index.html 使用同一個後端網址。
+    const API_URL = 'https://steel-directory-api.steel-directory-api.workers.dev/';
     const SESSION_KEY = 'steel-directory-admin';
     const app = document.getElementById('app');
     const account = document.getElementById('account');
     const accountName = document.getElementById('accountName');
     const logout = document.getElementById('logout');
     const headerStatus = document.getElementById('headerStatus');
+    const adminNav = document.getElementById('adminNav');
+    const memberTab = document.getElementById('memberTab');
+    const eventTab = document.getElementById('eventTab');
     let session = null;
     let expiryTimer;
     let adminMembers = [];
@@ -143,6 +156,11 @@
       ['公司職稱', 'companyTitle'], ['產品服務／專長', 'products'], ['分類', 'category'],
       ['手機', 'mobile'], ['市話', 'phone'], ['LINE ID', 'lineId'], ['Email', 'email'],
       ['地址', 'address'], ['狀態', 'status'], ['排序', 'sort'], ['備註', 'note']
+    ];
+    const EVENT_FIELDS = [
+      ['活動編號', 'id'], ['標題', 'title'], ['類型', 'type'], ['日期時間文字', 'dateTime'],
+      ['地點', 'place'], ['說明', 'description'], ['報名截止文字', 'deadline'], ['名額', 'capacity'],
+      ['狀態', 'status'], ['排序', 'sort']
     ];
 
     function el(tag, className, text) {
@@ -182,6 +200,12 @@
         invalid_status: '狀態須為啟用或停用。',
         invalid_sort: '排序須為數字。',
         invalid_headers: '「會員」分頁缺少必要表頭。',
+        invalid_event_headers: '「活動」分頁缺少必要表頭。',
+        invalid_event: '請提供要異動的活動欄位。',
+        required_event_title: '請填寫活動標題。',
+        event_not_found: '找不到此活動編號。',
+        invalid_event_status: '活動狀態須為上架或下架。',
+        invalid_capacity: '名額須為零或正整數。',
         dup_mobile: '這個手機已由其他會員使用。',
         busy: '系統忙碌中，請稍後再試。'
       };
@@ -232,7 +256,8 @@
       add.prepend(icon('plus'));
       const csv = button('btn light', 'CSV 匯入', renderAdminImport);
       csv.prepend(icon('upload'));
-      toolbar.append(add, csv);
+      const exportCsv = button('btn light', '匯出 Excel（CSV）', () => downloadMembersCsv(exportCsv, status));
+      toolbar.append(add, csv, exportCsv);
       const search = el('input', 'admin-search');
       search.type = 'search';
       search.placeholder = '搜尋姓名、公司、手機或會員編號';
@@ -287,6 +312,26 @@
       app.replaceChildren(heading, summary, section);
     }
 
+    async function downloadMembersCsv(control, status) {
+      control.disabled = true;
+      try {
+        const result = await adminRequest('admin.export');
+        if (!result.ok) return adminMessage(status, adminError(result.reason), true);
+        const url = URL.createObjectURL(new Blob([result.csv], { type: 'text/csv;charset=utf-8' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = '鋼鐵通訊錄-會員.csv';
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch {
+        adminMessage(status, adminError(), true);
+      } finally {
+        control.disabled = false;
+      }
+    }
+
     async function changeMemberStatus(member, toggle, section, status) {
       const next = member.status === '停用' ? '啟用' : '停用';
       if (next === '停用' && !window.confirm('確定停用「' + member.name + '」？')) return;
@@ -304,10 +349,10 @@
       }
     }
 
-    function adminPanel(title) {
+    function adminPanel(title, backLabel = '回會員管理', goBack = renderAdmin) {
       const screen = el('div', 'admin-screen');
       const heading = el('div', 'page-title');
-      const back = button('back-link', '回會員管理', () => renderAdmin());
+      const back = button('back-link', backLabel, () => goBack());
       back.prepend(icon('back'));
       heading.append(back, el('h1', '', title));
       const section = el('section', 'section');
@@ -447,6 +492,147 @@
       return { headers, columns, rows, numbers };
     }
 
+    function selectAdminTab(active) {
+      for (const tab of [memberTab, eventTab]) {
+        tab.classList.toggle('light', tab !== active);
+        if (tab === active) tab.setAttribute('aria-current', 'page');
+        else tab.removeAttribute('aria-current');
+      }
+    }
+
+    async function openEvents(message = '') {
+      selectAdminTab(eventTab);
+      const heading = el('div', 'page-title');
+      heading.append(el('h1', '', '活動管理'));
+      const section = el('section', 'section');
+      const toolbar = el('div', 'admin-toolbar');
+      const add = button('btn', '新增活動', () => renderEventEditor());
+      add.prepend(icon('plus'));
+      add.disabled = true;
+      toolbar.append(add);
+      const status = adminStatus();
+      const retry = button('btn light', '重新載入', () => openEvents(message));
+      retry.hidden = true;
+      section.append(toolbar, status, retry);
+      app.replaceChildren(heading, section);
+      adminMessage(status, '正在載入活動…');
+
+      try {
+        const data = await adminRequest('admin.events.list');
+        if (!section.isConnected) return;
+        if (!data.ok) {
+          adminMessage(status, adminError(data.reason), true);
+          retry.hidden = false;
+          return;
+        }
+        add.disabled = false;
+        adminMessage(status, message);
+        const { wrap, body } = adminTable(['標題／日期時間', '狀態', '管理操作'], '活動管理表格');
+        for (const record of data.events) {
+          const event = Object.fromEntries(EVENT_FIELDS.map(([, key]) => [key, String(record[key] ?? '').trim()]));
+          const inactive = event.status !== '上架';
+          const row = el('tr', inactive ? 'inactive' : '');
+          const title = el('td');
+          title.append(el('strong', '', event.title || event.id));
+          if (event.dateTime) title.append(el('small', '', event.dateTime));
+          const badge = el('td');
+          badge.append(el('span', 'admin-badge' + (inactive ? ' inactive' : ''), inactive ? '下架' : '上架'));
+          const actionsCell = el('td');
+          const actions = el('div', 'admin-actions');
+          const edit = button('', '編輯', () => renderEventEditor(event));
+          edit.setAttribute('aria-label', '編輯' + event.title);
+          const next = inactive ? '上架' : '下架';
+          const toggle = button(inactive ? '' : 'danger', next, () => {
+            if (!window.confirm('確定' + next + '「' + event.title + '」？')) return;
+            edit.disabled = true;
+            toggle.disabled = true;
+            saveEvent(section, status, 'admin.events.setStatus', { id: event.id, status: next }, '已' + next + '「' + event.title + '」。')
+              .finally(() => {
+                edit.disabled = false;
+                toggle.disabled = false;
+              });
+          });
+          toggle.setAttribute('aria-label', next + event.title);
+          actions.append(edit, toggle);
+          actionsCell.append(actions);
+          row.append(title, badge, actionsCell);
+          body.append(row);
+        }
+        if (!data.events.length) {
+          const row = el('tr');
+          const empty = el('td', '', '目前沒有活動');
+          empty.colSpan = 3;
+          row.append(empty);
+          body.append(row);
+        }
+        section.append(wrap);
+      } catch {
+        if (!section.isConnected) return;
+        adminMessage(status, adminError(), true);
+        retry.hidden = false;
+      }
+    }
+
+    function renderEventEditor(event = null) {
+      const panel = adminPanel(event ? '編輯活動' : '新增活動', '回活動管理', openEvents);
+      const form = el('form');
+      const fields = el('fieldset');
+      const inputs = new Map();
+      for (const [label, key] of EVENT_FIELDS) {
+        if (key === 'id' && !event) continue;
+        const field = el('label', 'admin-field', label + (key === 'title' ? '（必填）' : ''));
+        const input = el(key === 'description' ? 'textarea' : key === 'status' ? 'select' : 'input');
+        if (key === 'status') {
+          for (const value of ['下架', '上架']) input.append(el('option', '', value));
+        }
+        if (key === 'capacity' || key === 'sort') {
+          input.type = 'number';
+          input.step = key === 'sort' ? 'any' : '1';
+          if (key === 'capacity') input.min = '0';
+        }
+        input.value = event?.[key] || (key === 'status' ? '下架' : '');
+        input.required = key === 'title';
+        input.readOnly = key === 'id';
+        inputs.set(key, input);
+        field.append(input);
+        fields.append(field);
+      }
+      const status = adminStatus();
+      const actions = el('div', 'admin-toolbar');
+      const save = el('button', 'btn', '儲存資料');
+      save.type = 'submit';
+      actions.append(button('btn light', '取消', () => openEvents()), save);
+      fields.append(actions);
+      form.append(status, fields);
+      panel.append(form);
+
+      form.addEventListener('submit', async submit => {
+        submit.preventDefault();
+        if (fields.disabled) return;
+        const record = Object.fromEntries([...inputs].map(([key, input]) => [key, input.value.trim()]));
+        fields.disabled = true;
+        try {
+          await saveEvent(panel, status, 'admin.events.upsert', { event: record }, '已儲存「' + record.title + '」。');
+        } finally {
+          fields.disabled = false;
+        }
+      });
+    }
+
+    async function saveEvent(origin, status, action, fields, message) {
+      adminMessage(status, '正在儲存…');
+      try {
+        const data = await adminRequest(action, fields);
+        if (!origin.isConnected) return;
+        if (!data.ok) return adminMessage(status, adminError(data.reason), true);
+        await openEvents(message);
+        app.focus({ preventScroll: true });
+        window.scrollTo(0, 0);
+      } catch {
+        if (origin.isConnected) adminMessage(status, adminError(), true);
+      }
+    }
+
     function renderImportRows(preview, parsed, result) {
       const { wrap, body } = adminTable(['列', '姓名／手機', '結果'], 'CSV 匯入明細');
       wrap.classList.add('admin-preview');
@@ -565,6 +751,7 @@
       clearTimeout(expiryTimer);
       session = value;
       account.hidden = !value;
+      adminNav.hidden = !value;
       accountName.textContent = value?.name || '';
       headerStatus.textContent = '';
       try {
@@ -579,6 +766,9 @@
     }
 
     function endSession(message = '') {
+      if (session) {
+        try { localStorage.removeItem('steel-directory:v1:admin'); } catch { /* 儲存空間可能不可用 */ }
+      }
       saveSession(null);
       adminMembers = [];
       adminQuery = '';
@@ -662,6 +852,7 @@
 
     async function openAdmin() {
       const current = session;
+      selectAdminTab(memberTab);
       const section = el('section', 'section');
       const status = adminStatus();
       const retry = button('btn light', '重新載入', openAdmin);
@@ -671,7 +862,7 @@
       app.replaceChildren(section);
       try {
         const data = await loadMembers();
-        if (session !== current) return;
+        if (session !== current || !section.isConnected) return;
         if (data.ok) {
           renderAdmin();
           app.focus({ preventScroll: true });
@@ -719,6 +910,8 @@
         logout.disabled = false;
       }
     });
+    memberTab.addEventListener('click', openAdmin);
+    eventTab.addEventListener('click', () => openEvents());
 
     let stored;
     try { stored = JSON.parse(sessionStorage.getItem(SESSION_KEY)); } catch { /* 儲存內容無法讀取 */ }
